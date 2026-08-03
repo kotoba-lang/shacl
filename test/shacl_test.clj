@@ -3,7 +3,7 @@
             [clojure.java.shell :as shell]
             [clojure.test :refer [deftest is testing]]
             [kotoba.compiler.core :as compiler]
-            [kotoba.compiler.ir :as ir]))
+            [kotoba.kir :as ir]))
 
 (def source (slurp "src/shacl.kotoba"))
 (defn call [kir function & args] (ir/execute kir function (vec args)))
@@ -16,9 +16,9 @@
 (defn dvec [& values] ["vector" (vec values)])
 (defn dmap [entries]
   ["map" (->> entries (sort-by (comp str key))
-              (mapv (fn [[key value]] [key value])))])
+              (mapv (fn [[key value]] [(dkw key) value])))])
 (defn dget [document key]
-  (some (fn [[candidate value]] (when (= candidate key) value)) (second document)))
+  (some (fn [[candidate value]] (when (= candidate (dkw key)) value)) (second document)))
 
 (defn property [path & entries]
   (dmap (into {:path path} (map vec (partition 2 entries)))))
@@ -104,12 +104,12 @@
                "const w=await host.instantiateKotoba(Buffer.from(process.argv[2],'base64'));"
                "const run=(x,doc)=>{"
                "const kw=x=>['keyword',x],str=x=>['string',x],i=x=>['i64',BigInt(x)];"
-               "const map=e=>doc(['map',e.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0)]),vec=e=>doc(['vector',e]);"
+               "const map=e=>doc(['map',e.map(([k,v])=>[['keyword',k],v]).sort((a,b)=>a[0][1]<b[0][1]?-1:a[0][1]>b[0][1]?1:0)]),vec=e=>doc(['vector',e]);"
                "const p=map([[':path',kw(':choice')],[':in',vec([map([[':code',str('A')]]),map([[':code',str('B')]])])]]);"
                "const shape=x['node-shape'](vec([x['property-shape'](p)]));"
                "const good=x.validate(shape,map([[':choice',map([[':code',str('B')]])]]));"
                "const bad=x.validate(shape,map([[':choice',map([[':code',str('C')]])]]));"
-               "if(good[1].find(e=>e[0]===':valid?')[1][1]!==true||bad[1].find(e=>e[0]===':errors')[1][1].length!==1)throw Error('meaning');"
+               "if(good[1].find(e=>e[0][0]==='keyword'&&e[0][1]===':valid?')[1][1]!==true||bad[1].find(e=>e[0][0]==='keyword'&&e[0][1]===':errors')[1][1].length!==1)throw Error('meaning');"
                "let rejected=false;try{x.validate(shape,{})}catch(e){rejected=true}if(!rejected)throw Error('reject');};"
                "run(j.instantiateKotoba({}),x=>x);run(w.instance.exports,w.typedValues.document);"
                "}).catch(e=>{console.error(e);process.exit(99)})")
