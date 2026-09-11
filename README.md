@@ -16,5 +16,5 @@ portable ABI replacement for the former unbounded variadic Clojure constructor.
 ## Test
 
 ```bash
-clojure -M:test
+kbb -M:test
 ```
