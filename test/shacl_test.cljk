@@ -1,5 +1,5 @@
 (ns shacl-test
-  (:require [kotoba.bytes :as kbytes] [clojure.java.io :as io]
+  (:require [kotoba.lang.error :as kerror] [kotoba.bytes :as kbytes] [clojure.java.io :as io]
             [kotoba.process :as shell]
             [kotoba.test :refer [deftest is testing]]
             [kotoba.compiler.core :as compiler]
@@ -80,7 +80,7 @@
     (testing "property-shape remains an identity constructor"
       (is (= (dvec) (call kir 'property-shape (dvec)))))
     (testing "error output cannot exceed the canonical document budget"
-      (is (thrown? clojure.lang.ExceptionInfo
+      (is (thrown? kerror/ExceptionInfo
                    (call kir 'property-errors
                          (dmap {:items (apply dvec (repeat 32 (di64 1)))})
                          (property (dkw :items) :max-count (di64 0)
